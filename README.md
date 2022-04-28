@@ -13,4 +13,4 @@ Build Instructions:
 
 Run Instructions:
 - Must run as sudo to allow monitoring on network device.
-- sudo ./packetCatch 
+- sudo ./packetCatch
