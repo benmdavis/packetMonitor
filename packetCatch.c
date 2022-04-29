@@ -4,6 +4,10 @@
 #include <pcap.h>
 #include <netinet/in.h>
 #include <netinet/if_ether.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 void print_packet_info(const u_char* packet, struct pcap_pkthdr packet_header) {
     printf("5\n");
@@ -12,20 +16,10 @@ void print_packet_info(const u_char* packet, struct pcap_pkthdr packet_header) {
     // printf("?: %d\n", packet_header.ts);
 
 }
-void handle_address(char* str, u_char* srcAddr) {
-    int i = 0;
-    char* a = itoa(srcAddr);
-    printf("%d\n",a);
-    srcAddr = srcAddr + 1;
-    char* b = itoa(srcAddr);
-    printf("%d\n",b);
-
-    // int c
-    // int d
-    // while (i<15){
-    //     str[i] = srcAddr
-    // }
+void handle_address(char* str, const u_char* srcAddr) {
+    sprintf(str, "%d.%d.%d.%d", *srcAddr, *(srcAddr+1), *(srcAddr+2), *(srcAddr+3));
 }
+
 void packet_handler(u_char *args, const struct pcap_pkthdr *header, const u_char *packet) {
     print_packet_info(packet, *header);
     struct ether_header *eth_header;
@@ -37,7 +31,7 @@ void packet_handler(u_char *args, const struct pcap_pkthdr *header, const u_char
     }
     const u_char *ip_header;
     const u_char *tcp_header;
-    char* srcAddr[15];
+    char srcAddr[15];
     u_char *payload;
 
     int ethernet_header_length = 14;
@@ -60,7 +54,7 @@ void packet_handler(u_char *args, const struct pcap_pkthdr *header, const u_char
     }
     const u_char* rawSrc = (ip_header + 12);
     handle_address(srcAddr, rawSrc);
-    printf("Source: %d\n", srcAddr);
+    printf("Source: %s\n", srcAddr);
     tcp_header = packet + ethernet_header_length + ip_header_length;
     tcp_header_length = ((*(tcp_header + 12)) & 0xF0) >> 4;
     tcp_header_length = tcp_header_length * 4;
@@ -72,22 +66,7 @@ void packet_handler(u_char *args, const struct pcap_pkthdr *header, const u_char
     payload_length = header->caplen - (ethernet_header_length + ip_header_length + tcp_header_length);
     printf("Payload size: %d bytes\n", payload_length);
 
-    payload = packet + total_header_length;
-
-    // u_char *temp = payload;
-    // int count = 0;
-    // payload[payload_length] = '\0';
-    // while(count < payload_length) {
-    //     if(isprint(*temp)) {
-    //         printf("%c", *temp);
-    //     }
-    //     else {
-    //         printf(".");
-    //     }
-    //     temp++;
-    //     count++;
-    // }
-    // printf("\n");
+    // payload = packet + total_header_length;
 
     return;
 }
