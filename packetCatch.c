@@ -10,15 +10,44 @@
 #include <arpa/inet.h>
 
 void print_packet_info(const u_char* packet, struct pcap_pkthdr packet_header) {
-    printf("5\n");
     printf("Packet capture length: %d\n", packet_header.caplen);
     printf("Packet length: %d\n", packet_header.len);
     // printf("?: %d\n", packet_header.ts);
 
 }
-void handle_address(char* str, const u_char* srcAddr) {
-    sprintf(str, "%d.%d.%d.%d", *srcAddr, *(srcAddr+1), *(srcAddr+2), *(srcAddr+3));
+void handle_address(char* str, const u_char* addr) {
+    sprintf(str, "%d.%d.%d.%d", *addr, *(addr+1), *(addr+2), *(addr+3));
 }
+void handle_port(char * str, const u_char* port) {
+    printf("port: %d\n", *port);
+}
+int handle_ip_header(const u_char* ip_header) {
+    char srcAddr[15];
+    char dstAddr[15];
+    u_int8_t ip_vhl = *(ip_header);
+    int ip_header_length = (ip_vhl & 0x0f) * 4;
+    printf("IP header length (IHL) in bytes: %d bytes\n", ip_header_length);
+
+    int version = ((ip_vhl) & 0xf0) >> 4;
+    if (version != 4) {
+        printf("Not IPv4. Skipping...\n\n");
+        return -1;
+    }
+    printf("Version: %d\n", version);
+    u_char protocol = *(ip_header + 9);
+    if (protocol != IPPROTO_TCP) {
+        printf("Not a TCP packet. Skipping...\n\n");
+        return -1;
+    }
+    const u_char* rawSrc = (ip_header + 12);
+    const u_char* rawDst = (ip_header + 16);
+    handle_address(srcAddr, rawSrc);
+    handle_address(dstAddr, rawDst);
+    printf("Source: %s\n", srcAddr);
+    printf("Destination: %s\n", dstAddr);
+    return ip_header_length;
+}
+
 
 void packet_handler(u_char *args, const struct pcap_pkthdr *header, const u_char *packet) {
     print_packet_info(packet, *header);
@@ -31,30 +60,17 @@ void packet_handler(u_char *args, const struct pcap_pkthdr *header, const u_char
     }
     const u_char *ip_header;
     const u_char *tcp_header;
-    char srcAddr[15];
-    u_char *payload;
+    const char *payload;
 
     int ethernet_header_length = 14;
     int ip_header_length;
     int tcp_header_length;
     int payload_length;
-    int version;
     ip_header = packet + ethernet_header_length;
-
-    u_int8_t ip_vhl = *(ip_header);
-    ip_header_length = (ip_vhl & 0x0f) * 4;
-    printf("IP header length (IHL) in bytes: %d bytes\n", ip_header_length);
-
-    version = ((ip_vhl) & 0xf0) >> 4;
-    printf("Version: %d\n", version);
-    u_char protocol = *(ip_header + 9);
-    if (protocol != IPPROTO_TCP) {
-        printf("Not a TCP packet. Skipping...\n\n");
+    ip_header_length = handle_ip_header(ip_header);
+    if(ip_header_length == -1) {
         return;
     }
-    const u_char* rawSrc = (ip_header + 12);
-    handle_address(srcAddr, rawSrc);
-    printf("Source: %s\n", srcAddr);
     tcp_header = packet + ethernet_header_length + ip_header_length;
     tcp_header_length = ((*(tcp_header + 12)) & 0xF0) >> 4;
     tcp_header_length = tcp_header_length * 4;
@@ -65,9 +81,17 @@ void packet_handler(u_char *args, const struct pcap_pkthdr *header, const u_char
 
     payload_length = header->caplen - (ethernet_header_length + ip_header_length + tcp_header_length);
     printf("Payload size: %d bytes\n", payload_length);
-
-    // payload = packet + total_header_length;
-
+    payload = packet + total_header_length; 
+    printf("Payload:\n", payload);
+    if (payload_length > 0) { 
+        const u_char *temp_pointer = payload; 
+        int byte_count = 0; 
+        while (byte_count++ < payload_length) {
+            printf("%.2x", *temp_pointer); 
+            temp_pointer++; 
+        }
+        printf("\n"); 
+    } 
     return;
 }
 
