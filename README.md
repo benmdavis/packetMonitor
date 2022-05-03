@@ -1,8 +1,8 @@
 # packetMonitor
 (WIP) Packet sniffer for local network.
 Goal: A local network packet sniffer built in C using the libpcap library that outputs data in an (TBD) format that is then displayed using (TBD) framework via Python.
-Current state: IP data handled, packet is printing hex data now. Need to test on HTTP packets. 
-Next steps: Test on HTTP packets for actually packet dumping.
+Current state: IP data handled, packet is printing hex data now. 
+Next steps: Finish ipv6 address handling function. Handle other packet types (ARP, etc).
 
 Resources Used:
 Guide to libpcap: https://www.devdungeon.com/content/using-libpcap-c

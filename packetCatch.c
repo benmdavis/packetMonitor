@@ -12,16 +12,21 @@
 void print_packet_info(const u_char* packet, struct pcap_pkthdr packet_header) {
     printf("Packet capture length: %d\n", packet_header.caplen);
     printf("Packet length: %d\n", packet_header.len);
-    // printf("?: %d\n", packet_header.ts);
-
 }
-void handle_address(char* str, const u_char* addr) {
+
+void handle_ipv4_address(char* str, const u_char* addr) {
     sprintf(str, "%d.%d.%d.%d", *addr, *(addr+1), *(addr+2), *(addr+3));
 }
+
+void handle_ipv6_address(char* str, const u_char* addr) {
+    sprintf(str, "%d.%d.%d.%d", *addr, *(addr+1), *(addr+2), *(addr+3));
+}
+
 void handle_port(char * str, const u_char* port) {
     printf("port: %d\n", *port);
 }
-int handle_ip_header(const u_char* ip_header) {
+
+int handle_ipv4_header(const u_char* ip_header) {
     char srcAddr[15];
     char dstAddr[15];
     u_int8_t ip_vhl = *(ip_header);
@@ -41,23 +46,38 @@ int handle_ip_header(const u_char* ip_header) {
     }
     const u_char* rawSrc = (ip_header + 12);
     const u_char* rawDst = (ip_header + 16);
-    handle_address(srcAddr, rawSrc);
-    handle_address(dstAddr, rawDst);
+    handle_ipv4_address(srcAddr, rawSrc);
+    handle_ipv4_address(dstAddr, rawDst);
     printf("Source: %s\n", srcAddr);
     printf("Destination: %s\n", dstAddr);
     return ip_header_length;
 }
 
-
-void packet_handler(u_char *args, const struct pcap_pkthdr *header, const u_char *packet) {
-    print_packet_info(packet, *header);
-    struct ether_header *eth_header;
-    eth_header = (struct ether_header *) packet;
-    if (ntohs(eth_header->ether_type) != ETHERTYPE_IP) 
-    {
-        printf("Not an IP packet. Skipping...\n\n");
-        return;
+int handle_ipv6_header(const u_char* ip_header) {
+    char srcAddr[128];
+    char dstAddr[128];
+    u_int8_t ip_vhl = *(ip_header);
+    int version = ((ip_vhl) & 0xf0) >> 4;
+    if (version != 6) {
+        printf("Not IPv6. Skipping...\n\n");
+        return -1;
     }
+    printf("Version: %d\n", version);
+    u_char nextHeaderType = *(ip_header + 6);
+    if(nextHeaderType != IPPROTO_TCP) {
+        printf("Not a TCP packet. Skipping...\n\n");
+        return -1;
+    }
+    const u_char* rawSrc = (ip_header + 8);
+    const u_char* rawDst = (ip_header + 24);
+    handle_ipv6_address(srcAddr, rawSrc);
+    handle_ipv6_address(dstAddr, rawDst);
+    printf("Source: %s\n", srcAddr);
+    printf("Destination: %s\n", dstAddr);
+    return ip_header_length;
+}
+
+void handle_ip_packet(const struct pcap_pkthdr *header, const u_char *packet){
     const u_char *ip_header;
     const u_char *tcp_header;
     const char *payload;
@@ -67,7 +87,7 @@ void packet_handler(u_char *args, const struct pcap_pkthdr *header, const u_char
     int tcp_header_length;
     int payload_length;
     ip_header = packet + ethernet_header_length;
-    ip_header_length = handle_ip_header(ip_header);
+    ip_header_length = handle_ipv4_header(ip_header);
     if(ip_header_length == -1) {
         return;
     }
@@ -90,9 +110,59 @@ void packet_handler(u_char *args, const struct pcap_pkthdr *header, const u_char
             printf("%.2x", *temp_pointer); 
             temp_pointer++; 
         }
+        printf("\n");
         printf("\n"); 
     } 
     return;
+}
+
+void handle_arp_packet(){
+    printf("ARP!!!\n");
+}
+
+void handle_ip6_packet(const struct pcap_pkthdr *header, const u_char *packet){
+    const u_char *ip_header;
+    const u_char *tcp_header;
+    const char *payload;
+
+    int ethernet_header_length = 14;
+    int ip_header_length;
+    int tcp_header_length;
+    int payload_length;
+
+    ip_header = packet + ethernet_header_length;
+    ip_header_length = handle_ipv6_header(ip_header);
+
+    if(ip_header_length == -1) {
+        return;
+    }
+
+    tcp_header = packet + ethernet_header_length + ip_header_length;
+    tcp_header_length = ((*(tcp_header + 12)) & 0xF0) >> 4;
+    tcp_header_length = tcp_header_length * 4;
+    printf("TCP header length in bytes: %d\n", tcp_header_length);
+}
+
+void packet_handler(u_char *args, const struct pcap_pkthdr *header, const u_char *packet) {
+    print_packet_info(packet, *header);
+    struct ether_header *eth_header;
+    eth_header = (struct ether_header *) packet;
+    if (ntohs(eth_header->ether_type) == ETHERTYPE_IP) 
+    {
+        handle_ip_packet(header, packet);
+        return;
+    }
+    if (ntohs(eth_header->ether_type) == ETHERTYPE_ARP)
+    {
+        handle_arp_packet();//TODO
+        return;
+    }
+    if (ntohs(eth_header->ether_type) == ETHERTYPE_IPV6)
+    {
+        handle_ip6_packet(header, packet);//TODO
+        return;
+    }
+    printf("If you're seeing this, unhandled packet type reached: %d\n", ntohs(eth_header->ether_type));
 }
 
 
