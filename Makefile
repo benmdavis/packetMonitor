@@ -5,16 +5,23 @@
 
 CC = gcc                        # compiler to use
 
-LINKERFLAG = `pkg-config gtk4 --cflags --libs`
+LINKERFLAG = -lpcap `pkg-config gtk4 --cflags --libs`
 
-SRC := packetCatchGui.c
-BIN := packetCatchGui
+SRC_CLI := packetCatch.c
+BIN_CLI := packetCatch
+
+SRC_GUI := packetCatchGui.c
+BIN_GUI := packetCatchGui
 
 all: packetCatchGui
 
-build:
+cli:
+		echo "Compiling CLI app..."
+		${CC} ${LINKERFLAG} ${SRC_CLI} -o ${BIN_CLI}
+
+gui:
 		echo "Compiling..."
-		${CC} ${LINKERFLAG} ${SRC} -o ${BIN}
+		${CC} ${LINKERFLAG} ${SRC_GUI} -o ${BIN_GUI}
 
 clean:
 	@echo "Cleaning up..."

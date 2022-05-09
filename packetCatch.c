@@ -8,7 +8,6 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
- 
 
 void print_packet_info(const u_char* packet, struct pcap_pkthdr packet_header) {
     printf("Packet capture length: %d\n", packet_header.caplen);
@@ -164,7 +163,6 @@ void packet_handler(u_char *args, const struct pcap_pkthdr *header, const u_char
     printf("###END PACKET INFO###\n\n");
     return;
 }
-
 
 int main(int argc, char *argv[])
 {
