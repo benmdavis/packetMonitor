@@ -13,8 +13,10 @@ ARP Header Structure: https://github.com/lsanotes/libpcap-tutorial/blob/master/a
 
 
 Build Instructions:
-- gcc packetCatch.c -lpcap -o packetCatch
+- make cli: Compiles the CLI version.
+- make gui: Compiles the GUI version
 
 Run Instructions:
 - Must run as sudo to allow monitoring on network device.
-- sudo ./packetCatch
+- Currently only the CLI version is working. 
+- sudo ./packetCatch 
