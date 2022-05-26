@@ -154,12 +154,23 @@ void packet_handler(u_char *args, const struct pcap_pkthdr *header, const u_char
     struct ether_header *eth_header;
     eth_header = (struct ether_header *) packet;
     u_int16_t packetType = ntohs(eth_header->ether_type);
-    if(packetType == ETHERTYPE_IP) handle_ip4_packet(header, packet);
-    else if(packetType == ETHERTYPE_ARP) handle_arp_packet(header, packet);
-    else if(packetType == ETHERTYPE_IPV6) handle_ip6_packet(header, packet);
-    else {
+    switch(packetType) {
+        case ETHERTYPE_IP:
+            handle_ip4_packet(header, packet);
+        case ETHERTYPE_IPV6:
+            handle_ip6_packet(header, packet);
+        case ETHERTYPE_ARP:
+            handle_arp_packet(header, packet);
+        default:
             printf("If you're seeing this, unhandled packet type reached: %x\n", packetType);
+
     }
+    // if(packetType == ETHERTYPE_IP) handle_ip4_packet(header, packet);
+    // else if(packetType == ETHERTYPE_IPV6) handle_ip6_packet(header, packet);
+    // else if(packetType == ETHERTYPE_ARP) handle_arp_packet(header, packet);
+    // else {
+    //         printf("If you're seeing this, unhandled packet type reached: %x\n", packetType);
+    // }
     printf("###END PACKET INFO###\n\n");
     return;
 }
